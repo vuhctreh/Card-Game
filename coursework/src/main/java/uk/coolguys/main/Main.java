@@ -23,6 +23,7 @@ public class Main {
         // Asks for the card deck
         println("Please enter the path to the pick (card deck):");
         File pickFile = new File(scanner.next());
+        scanner.close();
         if (!pickFile.exists() || !pickFile.canRead())
             throw new FileNotFoundException("The path to the pick seems incorrect!");
 

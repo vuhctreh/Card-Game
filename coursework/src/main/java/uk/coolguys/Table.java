@@ -14,6 +14,9 @@ public class Table {
     /** The instance of our table since it's there's only one table */
     private static Table instance;
 
+    /** Boolean declared to determine whether the game has a winner later. */
+    Boolean hasWinner = false;
+
     /**
      * Begins a new table by generating the player instances in the main thread and
      * stores the available cards. If a {@link Table} has already began, throws a
@@ -98,23 +101,53 @@ public class Table {
         return this;
     }
 
-    public Table playGame() {
+    public Table playGame() throws InterruptedException {
 
-        players.stream().map(p -> new Thread(() -> {
-            AtomicInteger playerNr = new AtomicInteger(p.getPlayerNumber());
-            int pileId = playerNr.updateAndGet(i -> players.size() < i + 2 ? 0 : i + 1);
+        while (hasWinner == false) {
 
-            players.get(pileId).getPersonalPick().add(p.getCurrentHand().get(0));
+            players.stream().map(p -> new Thread(() -> {
 
-            p.getCurrentHand().remove(0);
+                AtomicInteger playerNr = new AtomicInteger(p.getPlayerNumber());
+                int pileId = playerNr.updateAndGet(i -> players.size() < i + 2 ? 0 : i + 1);
 
-            // System.out.println(p.getCurrentHand());
-            // System.out.println(players.get(pileId).getPersonalPick());
-        })).forEach(Thread::run);
+                /**
+                 * Gets card from next player's personalPick, adds it to p's currentHand and
+                 * removes the card from the personalPick. This is the card picking turn.
+                 */
+                p.getCurrentHand().add(players.get(pileId).getPersonalPick().get(0));
+                players.get(pileId).getPersonalPick().remove(0);
 
-        players.stream().map(p -> new Thread(() -> {
+                System.out
+                        .println("Player " + playerNr + " picks a card. Their current hand is: " + p.getCurrentHand());
 
-        })).forEach(Thread::run);
+                /**
+                 * Adds card (0) from p's current hand to their personal pick. Removes card(0)
+                 * from p's current hand. This is the card discarding turn.
+                 */
+                p.getPersonalPick().add(p.getCurrentHand().get(0));
+                p.getCurrentHand().remove(0);
+
+                System.out.println(
+                        "Player " + playerNr + " discards a card. Their current hand is: " + p.getCurrentHand());
+
+                /**
+                 * Checks if there are more than 1 unique values in p's hand. If not, the player
+                 * has won and hasWinner is set to true.
+                 */
+                if (p.getCurrentHand().stream().distinct().count() <= 1) {
+                    hasWinner = true;
+                }
+
+            })).forEach(Thread::run);
+
+            System.out.println("A turn has elapsed. Current cards in each pile: ");
+            players.forEach(i -> System.out.println("Card pile " + i.getPlayerNumber() + ": " + i.getPersonalPick()));
+
+            Thread.sleep(500);
+
+        }
+
+        System.out.println("A player has won");
 
         return this;
     }
