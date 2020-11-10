@@ -30,7 +30,7 @@ public class Main {
                 .collect(Collectors.toList());
 
         // Récupérer cartes & joueurs
-        Table.begin(cards, nPlayers).distribute();
+        Table.begin(cards, nPlayers).distribute().playGame();
     }
 
 }

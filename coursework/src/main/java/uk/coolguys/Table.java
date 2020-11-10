@@ -16,28 +16,28 @@ public class Table {
 
     /**
      * Begins a new table by generating the player instances in the main thread and
-     * stores the available cards.
-     * If a {@link Table} has already began, throws a {@link IllegalStateException}.
+     * stores the available cards. If a {@link Table} has already began, throws a
+     * {@link IllegalStateException}.
      *
-     * @param cards List of available cards
+     * @param cards    List of available cards
      * @param nPlayers The quantity of players
      * @return The table instance
      */
     public static Table begin(List<Integer> cards, int nPlayers) {
-        if(instance != null)
+        if (instance != null)
             throw new IllegalStateException("Table has already began!");
 
         return instance = new Table(cards, nPlayers);
     }
 
     /**
-     * Returns the instance of the current {@link Table} or
-     * throws {@link IllegalStateException} if there are table.
+     * Returns the instance of the current {@link Table} or throws
+     * {@link IllegalStateException} if there are table.
      *
      * @return The table instance
      */
     public static Table getInstance() {
-        if(instance == null)
+        if (instance == null)
             throw new IllegalStateException("There's no table available!");
 
         return instance;
@@ -51,20 +51,19 @@ public class Table {
 
     /**
      * Creates a new instance of table with specified pick at the beginning and
-     * specified amount of player.
-     * This constructor verifies if every conditions are match to play and if not, throws
-     * an exception.
+     * specified amount of player. This constructor verifies if every conditions are
+     * match to play and if not, throws an exception.
      *
-     * @param pick Pick
+     * @param pick    Pick
      * @param nPlayer Player count
      */
     Table(List<Integer> pick, int nPlayer) {
-        if(pick.size() < nPlayer*8)
+        if (pick.size() < nPlayer * 8)
             throw new IllegalStateException("The pick is not big enough for the amount of players!");
 
         this.pick = pick;
         this.players = new ArrayList<>(nPlayer);
-        for(int i = 0; i < nPlayer; i++)
+        for (int i = 0; i < nPlayer; i++)
             this.players.add(new Player());
     }
 
@@ -74,14 +73,14 @@ public class Table {
      * @throws InterruptedException In case if the thread is interrupted.
      */
     public Table distribute() throws InterruptedException {
-        AtomicInteger playerIdSupplier  = new AtomicInteger();
+        AtomicInteger playerIdSupplier = new AtomicInteger();
 
-        while(!pick.isEmpty()) {
+        while (!pick.isEmpty()) {
             Thread thread = new Thread(() -> {
                 int playerId = playerIdSupplier.getAndUpdate(i -> players.size() < i + 2 ? 0 : i + 1);
 
                 Player player = players.get(playerId);
-                if(player.getCurrentHand().size() < HAND_SIZE)
+                if (player.getCurrentHand().size() < HAND_SIZE)
                     player.addToHand(pick.get(0));
                 else
                     player.addToPick(pick.get(0));
@@ -90,7 +89,7 @@ public class Table {
             });
             thread.start();
 
-            //noinspection SynchronizationOnLocalVariableOrMethodParameter
+            // noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized (thread) {
                 thread.wait();
             }
@@ -99,9 +98,30 @@ public class Table {
         return this;
     }
 
+    public Table playGame() {
+
+        players.stream().map(p -> new Thread(() -> {
+            AtomicInteger playerNr = new AtomicInteger(p.getPlayerNumber());
+            int pileId = playerNr.updateAndGet(i -> players.size() < i + 2 ? 0 : i + 1);
+
+            players.get(pileId).getPersonalPick().add(p.getCurrentHand().get(0));
+
+            p.getCurrentHand().remove(0);
+
+            // System.out.println(p.getCurrentHand());
+            // System.out.println(players.get(pileId).getPersonalPick());
+        })).forEach(Thread::run);
+
+        players.stream().map(p -> new Thread(() -> {
+
+        })).forEach(Thread::run);
+
+        return this;
+    }
+
     /**
-     * Returns the global pick of the {@link Table}, this pick should be empty
-     * once {@link this#distribute()} is ran.
+     * Returns the global pick of the {@link Table}, this pick should be empty once
+     * {@link this#distribute()} is ran.
      *
      * @return The list of pick
      */
