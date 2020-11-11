@@ -1,7 +1,9 @@
 package uk.coolguys;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static uk.coolguys.Player.HAND_SIZE;
@@ -15,7 +17,8 @@ public class Table {
     private static Table instance;
 
     /** Boolean declared to determine whether the game has a winner later. */
-    Boolean hasWinner = false;
+    private Boolean hasWinner = false;
+    private int winningPlayer;
 
     /**
      * Begins a new table by generating the player instances in the main thread and
@@ -103,6 +106,15 @@ public class Table {
 
     public Table playGame() throws InterruptedException {
 
+        for (int i = 0; i < players.size(); i++) {
+            Player winChecker = players.get(i);
+            if (winChecker.getCurrentHand().stream().distinct().count() <= 1) {
+                hasWinner = true;
+                winningPlayer = winChecker.getPlayerNumber();
+                break;
+            }
+        }
+
         while (hasWinner == false) {
 
             players.stream().map(p -> new Thread(() -> {
@@ -117,18 +129,25 @@ public class Table {
                 p.getCurrentHand().add(players.get(pileId).getPersonalPick().get(0));
                 players.get(pileId).getPersonalPick().remove(0);
 
-                System.out
-                        .println("Player " + playerNr + " picks a card. Their current hand is: " + p.getCurrentHand());
+                System.out.println("Player " + p.getPlayerNumber() + " picks a card. Their current hand is: "
+                        + p.getCurrentHand());
 
                 /**
                  * Adds card (0) from p's current hand to their personal pick. Removes card(0)
                  * from p's current hand. This is the card discarding turn.
                  */
-                p.getPersonalPick().add(p.getCurrentHand().get(0));
-                p.getCurrentHand().remove(0);
 
-                System.out.println(
-                        "Player " + playerNr + " discards a card. Their current hand is: " + p.getCurrentHand());
+                ListIterator<Integer> iterator = p.getCurrentHand().listIterator();
+                while (iterator.hasNext()) {
+                    if (iterator.next() != p.getPlayerNumber()) {
+                        p.getPersonalPick().add(p.getCurrentHand().get(iterator.nextIndex() - 1));
+                        p.getCurrentHand().remove(iterator.nextIndex() - 1);
+                        break;
+                    }
+                }
+
+                System.out.println("Player " + p.getPlayerNumber() + " discards a card. Their current hand is: "
+                        + p.getCurrentHand());
 
                 /**
                  * Checks if there are more than 1 unique values in p's hand. If not, the player
@@ -136,6 +155,7 @@ public class Table {
                  */
                 if (p.getCurrentHand().stream().distinct().count() <= 1) {
                     hasWinner = true;
+                    winningPlayer = p.getPlayerNumber();
                 }
 
             })).forEach(Thread::run);
@@ -143,11 +163,11 @@ public class Table {
             System.out.println("A turn has elapsed. Current cards in each pile: ");
             players.forEach(i -> System.out.println("Card pile " + i.getPlayerNumber() + ": " + i.getPersonalPick()));
 
-            Thread.sleep(500);
+            Thread.sleep(5000);
 
         }
 
-        System.out.println("A player has won");
+        System.out.println("Player " + winningPlayer + " has won");
 
         return this;
     }
