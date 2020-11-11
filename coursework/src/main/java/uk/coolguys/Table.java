@@ -1,28 +1,29 @@
 package uk.coolguys;
 
+import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static uk.coolguys.Player.HAND_SIZE;
 
-/**
- * Describe a table pls
- */
 public class Table {
 
-    /** The instance of our table since it's there's only one table */
+    /**
+     * The instance of our table; there can only be one table playing at one time.
+     */
     private static Table instance;
 
     /** Boolean declared to determine whether the game has a winner later. */
     private Boolean hasWinner = false;
+
+    /** Int used to store the index/id of the winning player */
     private int winningPlayer;
 
     /**
      * Begins a new table by generating the player instances in the main thread and
-     * stores the available cards. If a {@link Table} has already began, throws a
+     * stores the available cards. If a {@link Table} has already began, throws an
      * {@link IllegalStateException}.
      *
      * @param cards    List of available cards
@@ -38,7 +39,7 @@ public class Table {
 
     /**
      * Returns the instance of the current {@link Table} or throws
-     * {@link IllegalStateException} if there are table.
+     * {@link IllegalStateException} if there is already a table.
      *
      * @return The table instance
      */
@@ -49,7 +50,7 @@ public class Table {
         return instance;
     }
 
-    /** The pick of cards */
+    /** The pick of cards (pick refers to the piles of cards between players) */
     private final List<Integer> pick;
 
     /** The players */
@@ -57,8 +58,8 @@ public class Table {
 
     /**
      * Creates a new instance of table with specified pick at the beginning and
-     * specified amount of player. This constructor verifies if every conditions are
-     * match to play and if not, throws an exception.
+     * specified amount of player. This constructor verifies that all conditions are
+     * met. Ff not, throws an exception.
      *
      * @param pick    Pick
      * @param nPlayer Player count
@@ -76,7 +77,7 @@ public class Table {
     /**
      * Distributes cards to each players with each card distributed by a new thread.
      *
-     * @throws InterruptedException In case if the thread is interrupted.
+     * @throws InterruptedException In case the thread is interrupted.
      */
     public Table distribute() throws InterruptedException {
         AtomicInteger playerIdSupplier = new AtomicInteger();
@@ -95,7 +96,6 @@ public class Table {
             });
             thread.start();
 
-            // noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized (thread) {
                 thread.wait();
             }
@@ -123,31 +123,75 @@ public class Table {
                 int pileId = playerNr.updateAndGet(i -> players.size() < i + 2 ? 0 : i + 1);
 
                 /**
-                 * Gets card from next player's personalPick, adds it to p's currentHand and
-                 * removes the card from the personalPick. This is the card picking turn.
+                 * Creates a new file if necessary. If file already exist it does not overwrite
+                 * it.
                  */
-                p.getCurrentHand().add(players.get(pileId).getPersonalPick().get(0));
-                players.get(pileId).getPersonalPick().remove(0);
-
-                System.out.println("Player " + p.getPlayerNumber() + " picks a card. Their current hand is: "
-                        + p.getCurrentHand());
+                try {
+                    File myObj = new File("coursework/src/main/resources/player" + p.getPlayerNumber() + ".txt");
+                    if (myObj.createNewFile()) {
+                        System.out.println("File created:" + p.getPlayerNumber() + ".");
+                    }
+                } catch (IOException e) {
+                    System.out.println("An error occurred in the creation/writing of the file for player"
+                            + p.getPlayerNumber() + ".");
+                    e.printStackTrace();
+                }
 
                 /**
-                 * Adds card (0) from p's current hand to their personal pick. Removes card(0)
-                 * from p's current hand. This is the card discarding turn.
+                 * Gets a card from next player's personalPick, adds it to p's currentHand.
+                 */
+                p.getCurrentHand().add(players.get(pileId).getPersonalPick().get(0));
+
+                /**
+                 * Writes to the text file the logs of the previous action.
+                 */
+                try (FileWriter fw = new FileWriter(
+                        "coursework/src/main/resources/player" + p.getPlayerNumber() + ".txt", true);
+                        BufferedWriter bw = new BufferedWriter(fw);
+                        PrintWriter out = new PrintWriter(bw)) {
+                    out.println("player " + p.getPlayerNumber() + " draws a "
+                            + players.get(pileId).getPersonalPick().get(0) + " from deck " + pileId + ".");
+                } catch (IOException e) {
+                    System.out.println(
+                            "An error occurred in the writing of the file for player" + p.getPlayerNumber() + ".");
+                    e.printStackTrace();
+                }
+
+                /**
+                 * Removes the card from the personalPick. This is the card picking turn.
+                 */
+                players.get(pileId).getPersonalPick().remove(0);
+
+                /**
+                 * Adds card the first non-priority card from p's current hand to their personal
+                 * pick. Removes this card. from p's current hand. This is the card discarding
+                 * turn.
                  */
 
                 ListIterator<Integer> iterator = p.getCurrentHand().listIterator();
                 while (iterator.hasNext()) {
                     if (iterator.next() != p.getPlayerNumber()) {
                         p.getPersonalPick().add(p.getCurrentHand().get(iterator.nextIndex() - 1));
+
+                        /**
+                         * Writes to the text file the logs of the previous action.
+                         */
+                        try (FileWriter fw = new FileWriter(
+                                "coursework/src/main/resources/player" + p.getPlayerNumber() + ".txt", true);
+                                BufferedWriter bw = new BufferedWriter(fw);
+                                PrintWriter out = new PrintWriter(bw)) {
+                            out.println("player " + p.getPlayerNumber() + " discards a "
+                                    + players.get(pileId).getPersonalPick().get(0) + " from deck " + pileId + ".");
+                        } catch (IOException e) {
+                            System.out.println("An error occurred in the writing of the file for player"
+                                    + p.getPlayerNumber() + ".");
+                            e.printStackTrace();
+                        }
+
                         p.getCurrentHand().remove(iterator.nextIndex() - 1);
                         break;
                     }
                 }
-
-                System.out.println("Player " + p.getPlayerNumber() + " discards a card. Their current hand is: "
-                        + p.getCurrentHand());
 
                 /**
                  * Checks if there are more than 1 unique values in p's hand. If not, the player
@@ -162,9 +206,20 @@ public class Table {
 
             System.out.println("A turn has elapsed. Current cards in each pile: ");
             players.forEach(i -> System.out.println("Card pile " + i.getPlayerNumber() + ": " + i.getPersonalPick()));
+        }
 
-            Thread.sleep(5000);
-
+        /**
+         * Writing to every file which player won
+         */
+        for (int i = 0; i < players.size(); i++) {
+            try (FileWriter fw = new FileWriter("coursework/src/main/resources/player" + i + ".txt", true);
+                    BufferedWriter bw = new BufferedWriter(fw);
+                    PrintWriter out = new PrintWriter(bw)) {
+                out.println("Player " + winningPlayer + " has won.");
+                out.println("Player " + winningPlayer + " hand: " + players.get(winningPlayer).getCurrentHand() + ".");
+            } catch (IOException e) {
+                System.out.println("An error occured while writing to the file.");
+            }
         }
 
         System.out.println("Player " + winningPlayer + " has won");

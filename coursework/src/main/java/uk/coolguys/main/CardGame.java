@@ -11,7 +11,7 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 import static uk.coolguys.utils.PrintUtils.println;
 
-public class Main {
+public class CardGame {
 
     public static void main(String[] args) throws Exception {
         final Scanner scanner = new Scanner(System.in);
@@ -30,8 +30,7 @@ public class Main {
         List<Integer> cards = Files.readAllLines(Paths.get(pickFile.toURI())).stream().map(Integer::parseInt)
                 .collect(Collectors.toList());
 
-        // Récupérer cartes & joueurs
+        // Uses an instance of Table to play the game.
         Table.begin(cards, nPlayers).distribute().playGame();
     }
-
 }
