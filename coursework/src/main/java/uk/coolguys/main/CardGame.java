@@ -27,6 +27,7 @@ public class CardGame {
         if (!pickFile.exists() || !pickFile.canRead())
             throw new FileNotFoundException("The path to the pick seems incorrect!");
 
+        // Throws a NumberFormatException if one of the inputs is not and int.
         List<Integer> cards = Files.readAllLines(Paths.get(pickFile.toURI())).stream().map(Integer::parseInt)
                 .collect(Collectors.toList());
 

@@ -76,11 +76,19 @@ public class Table {
 
     /**
      * Distributes cards to each players with each card distributed by a new thread.
-     *
-     * @throws InterruptedException In case the thread is interrupted.
+     * Checks if any of the integers are negative
+     * 
+     * @throws IllegalArgumentException if any input numbers are negative.
+     * @throws InterruptedException     In case the thread is interrupted.
      */
     public Table distribute() throws InterruptedException {
         AtomicInteger playerIdSupplier = new AtomicInteger();
+
+        ListIterator<Integer> iterator = pick.listIterator();
+        while (iterator.hasNext()) {
+            if (iterator.next() < 0)
+                throw new IllegalArgumentException("One of the numbers in the file was not non-negative.");
+        }
 
         while (!pick.isEmpty()) {
             Thread thread = new Thread(() -> {
@@ -127,8 +135,9 @@ public class Table {
                  * it.
                  */
                 try {
-                    File myObj = new File("coursework/src/main/resources/player" + p.getPlayerNumber() + ".txt");
-                    if (myObj.createNewFile()) {
+                    File myObj = new File("player" + p.getPlayerNumber() + ".txt");
+                    if (!myObj.exists()) {
+                        myObj.createNewFile();
                         System.out.println("File created:" + p.getPlayerNumber() + ".");
                     }
                 } catch (IOException e) {
@@ -145,12 +154,14 @@ public class Table {
                 /**
                  * Writes to the text file the logs of the previous action.
                  */
-                try (FileWriter fw = new FileWriter(
-                        "coursework/src/main/resources/player" + p.getPlayerNumber() + ".txt", true);
+                try (FileWriter fw = new FileWriter("player" + p.getPlayerNumber() + ".txt", true);
                         BufferedWriter bw = new BufferedWriter(fw);
                         PrintWriter out = new PrintWriter(bw)) {
                     out.println("player " + p.getPlayerNumber() + " draws a "
                             + players.get(pileId).getPersonalPick().get(0) + " from deck " + pileId + ".");
+                    bw.close();
+                    fw.close();
+                    out.close();
                 } catch (IOException e) {
                     System.out.println(
                             "An error occurred in the writing of the file for player" + p.getPlayerNumber() + ".");
@@ -176,12 +187,14 @@ public class Table {
                         /**
                          * Writes to the text file the logs of the previous action.
                          */
-                        try (FileWriter fw = new FileWriter(
-                                "coursework/src/main/resources/player" + p.getPlayerNumber() + ".txt", true);
+                        try (FileWriter fw = new FileWriter("player" + p.getPlayerNumber() + ".txt", true);
                                 BufferedWriter bw = new BufferedWriter(fw);
                                 PrintWriter out = new PrintWriter(bw)) {
                             out.println("player " + p.getPlayerNumber() + " discards a "
                                     + players.get(pileId).getPersonalPick().get(0) + " from deck " + pileId + ".");
+                            bw.close();
+                            fw.close();
+                            out.close();
                         } catch (IOException e) {
                             System.out.println("An error occurred in the writing of the file for player"
                                     + p.getPlayerNumber() + ".");
@@ -212,11 +225,14 @@ public class Table {
          * Writing to every file which player won
          */
         for (int i = 0; i < players.size(); i++) {
-            try (FileWriter fw = new FileWriter("coursework/src/main/resources/player" + i + ".txt", true);
+            try (FileWriter fw = new FileWriter("player" + i + ".txt", true);
                     BufferedWriter bw = new BufferedWriter(fw);
                     PrintWriter out = new PrintWriter(bw)) {
                 out.println("Player " + winningPlayer + " has won.");
                 out.println("Player " + winningPlayer + " hand: " + players.get(winningPlayer).getCurrentHand() + ".");
+                bw.close();
+                fw.close();
+                out.close();
             } catch (IOException e) {
                 System.out.println("An error occured while writing to the file.");
             }
