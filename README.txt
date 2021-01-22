@@ -1,4 +1,4 @@
-#Card Game
+# Card Game
 
 The rules of the game are as follows: 
 Each player is distributed 4 cards from a deck of cards. The
