@@ -1,5 +1,3 @@
-# Card Game
-
 The rules of the game are as follows: 
 Each player is distributed 4 cards from a deck of cards. The
 remaining cards are then distributed evenly throughout n piles
